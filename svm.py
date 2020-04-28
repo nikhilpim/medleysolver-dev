@@ -35,11 +35,10 @@ def svm(problems, timeout, filename):
     for problem in problems:
         data.append(probe(problem))
 
-    labels = [np.max([-1 * strategy_test(problem, strategy) for strategy in STRATEGIES]) for problem in problems]
+    labels = [np.argmax([-1 * strategy_test(problem, strategy) for strategy in STRATEGIES]) for problem in problems]
 
     clf = SVC(gamma='auto')
     clf.fit(np.array(data), np.array(labels))
 
     with open(filename, "wb") as f:
         pickle.dump(clf, f)
-        
