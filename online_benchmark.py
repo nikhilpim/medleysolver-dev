@@ -28,6 +28,8 @@ UNKNOWN_RESULT = 'unknown'
 TIMEOUT_RESULT = 'timeout (%.1f s)' % TIMEOUT
 ERROR_RESULT   = 'error'
 
+SOLVER_TO_BENCH = "BOOLECTOR"
+
 SOLVERS = {
     "Z3"   : "z3 -T:33",
     "CVC4" : "cvc4 --tlimit=33000",
@@ -36,11 +38,11 @@ SOLVERS = {
 
 }
 
-EPSILON = 0.88          #probability with which to randomly search
-EPSILON_DECAY = 0.92
+EPSILON = 0.5          #probability with which to randomly search
+EPSILON_DECAY = 0.9
 TRAINING_SAMPLE = 200
-SPEEDUP_WEIGHT = 0.8
-SIMILARITY_WEIGHT = 0.2
+SPEEDUP_WEIGHT = 0.5
+SIMILARITY_WEIGHT = 0.5
 
 PROBLEM_DIR = "QF_AUFBV/**/*.smt2*"
 
@@ -69,7 +71,6 @@ def output2result(problem, output):
 
 def run_problem(solver, invocation, problem):
     # pass the problem to the command
-    print(solver)
     command = "%s %s" %(invocation, problem)
     # get start time
     start = datetime.datetime.now().timestamp()
@@ -145,7 +146,7 @@ def featurize_problems(problem_dir):
     # problems = sorted(problems)
     data = []
     for problem in problems:
-        data.append(probe(problem))
+        data.append(1)
     return problems, np.array(data)
 
 def add_strategy(problem, datapoint, solver, solved, all):
@@ -165,32 +166,25 @@ def main(problem_dir):
     all = []
     success = False
     ctr = 0
-
     alternative_times = []
     for prob, point in zip(problems, X):
-        # print(ctr, EPSILON * (EPSILON_DECAY ** ctr))
+        # print(ctr)
         start = datetime.datetime.now().timestamp()
-        if solved and np.random.rand() >= EPSILON * (EPSILON_DECAY ** ctr):
-            closest = min(solved, key=lambda entry: SPEEDUP_WEIGHT * entry.time + SIMILARITY_WEIGHT * norm(entry.datapoint - point) - (2000 * int(entry.result == 'unsat' or entry.result == 'sat')))
-            success = add_strategy(prob, point, closest.solve_method, solved, all)
-        else:
-            rand_function = np.random.choice(list(SOLVERS.keys()))
-            # print("rand chosen")
-            add_strategy(prob, point, rand_function, solved, all)
+        add_strategy(prob, point, SOLVER_TO_BENCH, solved, all)
         ctr += 1
         end = datetime.datetime.now().timestamp()
         alternative_times.append(end-start)
 
-    with open("online_true.pickle", "wb") as f:
-        pickle.dump(alternative_times, f)
-    print("all", all)
-    print("solved", solved)
+
+
+    # print("all", all)
+    # print("solved", solved)
     res = [(entry.problem, entry.result, entry.solve_method, entry.time) for entry in all]
     res = [t[3] for t in res]
-    with open("online_times.pickle", "wb") as f:
+    with open(SOLVER_TO_BENCH + "_times.pickle", "wb") as f:
         pickle.dump(res, f)
 
-    with open("online_all.pickle", "wb") as f:
+    with open(SOLVER_TO_BENCH + "_all.pickle", "wb") as f:
         pickle.dump([(entry.problem, entry.result, entry.solve_method, entry.time) for entry in all], f)
 
     print([(entry.problem, entry.result, entry.solve_method, entry.time) for entry in all])
