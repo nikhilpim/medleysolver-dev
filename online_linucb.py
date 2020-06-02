@@ -18,7 +18,7 @@ from samplers import ThompsonSampling
 # arguments
 TIMEOUT     = 30.0
 RESULTS_DIR = "results"
-
+ALPHA = 2.358
 # data
 CSV_HEADER  = "Instance,Result,Time\n"
 Result      = namedtuple('Result', ('problem', 'result', 'elapsed'))
@@ -39,7 +39,7 @@ SOLVERS = OrderedDict({
 })
 
 EPSILON = 0.88          #probability with which to randomly search
-EPSILON_DECAY = 0.92
+EPSILON_DECAY = 0.95
 TRAINING_SAMPLE = 182397123
 SPEEDUP_WEIGHT = 0.8
 SIMILARITY_WEIGHT = 0.2
@@ -164,45 +164,46 @@ def add_strategy(problem, datapoint, solver, solved, all):
         solved.append(Solved_Problem(problem, datapoint, solver, res.elapsed, res.result))
     all.append(Solved_Problem(problem, datapoint, solver, res.elapsed, res.result))
 
-    return (res.result == SAT_RESULT or res.result == UNSAT_RESULT)
+    return (1 - res.elapsed/TIMEOUT) ** 3
 
 
 def main(problem_dir):
     problems, X = featurize_problems(problem_dir)
-
+    X = X / (X.max(axis=0) + 1e-12)
     solved = []
     all = []
     success = False
     ctr = 0
-    sampler = ThompsonSampling(len(SOLVERS), init_a=1, init_b=1)
 
     alternative_times = []
+    d = len(PROBES)
+    thetas = [np.zeros((d, 1)) for _ in SOLVERS]
+    As = [np.identity(d) for _ in SOLVERS]
+    Bs = [np.zeros((d, 1)) for _ in SOLVERS]
     for prob, point in zip(problems, X):
+        point = point.reshape((len(point), 1))
         # print(ctr, EPSILON * (EPSILON_DECAY ** ctr))
         start = datetime.datetime.now().timestamp()
-        if solved and np.random.rand() >= EPSILON * (EPSILON_DECAY ** ctr):
-            closest = min(solved, key=lambda entry: SPEEDUP_WEIGHT * entry.time + SIMILARITY_WEIGHT * norm(entry.datapoint - point) - (2000 * int(entry.result == 'unsat' or entry.result == 'sat')))
-            success = add_strategy(prob, point, closest.solve_method, solved, all)
-            choice = list(SOLVERS.keys()).index(closest.solve_method)
-        else:
-            choice = np.random.choice(list(range(len(SOLVERS))))
-            # print("rand chosen")
-            success = add_strategy(prob, point, list(SOLVERS.keys())[choice], solved, all)
-        sampler.update(choice, success)
+        thetas = [np.linalg.inv(As[i]) @ Bs[i] for i in range(len(SOLVERS))]
+        ps = [thetas[i].T @ point + ALPHA * np.sqrt(point.T @ np.linalg.inv(As[i]) @ point) for i in range(len(SOLVERS))]
+        choice = np.argmax(ps) if np.random.rand() >= EPSILON * (EPSILON_DECAY ** ctr) else np.random.choice(list(range(len(SOLVERS))))
+        reward = add_strategy(prob, point, list(SOLVERS.keys())[choice], solved, all)
+        As[choice] = As[choice] + point @ point.T
+        Bs[choice] = Bs[choice] + reward * point
         ctr += 1
         end = datetime.datetime.now().timestamp()
         alternative_times.append(end-start)
 
-    with open("online_true.pickle", "wb") as f:
+    with open("linucb_true.pickle", "wb") as f:
         pickle.dump(alternative_times, f)
     print("all", all)
     print("solved", solved)
     res = [(entry.problem, entry.result, entry.solve_method, entry.time) for entry in all]
     res = [t[3] for t in res]
-    with open("online_times.pickle", "wb") as f:
+    with open("linucb_times.pickle", "wb") as f:
         pickle.dump(res, f)
 
-    with open("online_all.pickle", "wb") as f:
+    with open("linucb_all.pickle", "wb") as f:
         pickle.dump([(entry.problem, entry.result, entry.solve_method, entry.time) for entry in all], f)
 
     print([(entry.problem, entry.result, entry.solve_method, entry.time) for entry in all])
