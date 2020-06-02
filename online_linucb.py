@@ -168,8 +168,8 @@ def add_strategy(problem, datapoint, solver, solved, all):
 
 
 def main(problem_dir):
-    problems, X = featurize_problems(problem_dir)
-    X = X / (X.max(axis=0) + 1e-12)
+    problems = glob.glob(problem_dir, recursive=True)
+    problems = np.random.choice(problems, size=min(TRAINING_SAMPLE, len(problems)), replace=False)
     solved = []
     all = []
     success = False
@@ -180,7 +180,8 @@ def main(problem_dir):
     thetas = [np.zeros((d, 1)) for _ in SOLVERS]
     As = [np.identity(d) for _ in SOLVERS]
     Bs = [np.zeros((d, 1)) for _ in SOLVERS]
-    for prob, point in zip(problems, X):
+    for prob in problems:
+        point = np.array(probe(prob))
         point = point.reshape((len(point), 1))
         # print(ctr, EPSILON * (EPSILON_DECAY ** ctr))
         start = datetime.datetime.now().timestamp()

@@ -159,14 +159,16 @@ def add_strategy(problem, datapoint, solver, solved, all):
 
 
 def main(problem_dir, solver_to_bench):
-    problems, X = featurize_problems(problem_dir)
+    problems = glob.glob(problem_dir, recursive=True)
+    problems = np.random.choice(problems, size=min(TRAINING_SAMPLE, len(problems)), replace=False)
 
     solved = []
     all = []
     success = False
     ctr = 0
     alternative_times = []
-    for prob, point in zip(problems, X):
+    for prob in problems:
+        point = np.array(probe(prob))
         # print(ctr)
         start = datetime.datetime.now().timestamp()
         add_strategy(prob, point, solver_to_bench, solved, all)

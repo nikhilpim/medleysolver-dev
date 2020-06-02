@@ -168,7 +168,8 @@ def add_strategy(problem, datapoint, solver, solved, all):
 
 
 def main(problem_dir):
-    problems, X = featurize_problems(problem_dir)
+    problems = glob.glob(problem_dir, recursive=True)
+    problems = np.random.choice(problems, size=min(TRAINING_SAMPLE, len(problems)), replace=False)
 
     solved = []
     all = []
@@ -177,7 +178,8 @@ def main(problem_dir):
     sampler = ThompsonSampling(len(SOLVERS), init_a=1, init_b=1)
 
     alternative_times = []
-    for prob, point in zip(problems, X):
+    for prob in problems:
+        point = np.array(probe(prob))
         # print(ctr, EPSILON * (EPSILON_DECAY ** ctr))
         start = datetime.datetime.now().timestamp()
         if solved and np.random.rand() >= EPSILON * (EPSILON_DECAY ** ctr):
