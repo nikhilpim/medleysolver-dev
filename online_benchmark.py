@@ -14,7 +14,7 @@ from collections import namedtuple
 import pickle
 
 # arguments
-TIMEOUT     = 30.0
+TIMEOUT = 60.0
 RESULTS_DIR = "results"
 
 # data
@@ -30,20 +30,20 @@ ERROR_RESULT   = 'error'
 
 
 SOLVERS = {
-    "Z3"   : "z3 -T:33",
-    "CVC4" : "cvc4 --tlimit=33000",
-    "BOOLECTOR" : "./tools/boolector-3.2.1/build/bin/boolector -t 33",
-    "YICES": "./tools/yices-2.6.2/bin/yices-smt2 --timeout=33"
+    "Z3"   : "z3 -T:63",
+    "CVC4" : "cvc4 --tlimit=63000",
+    "BOOLECTOR" : "./tools/boolector-3.2.1/build/bin/boolector -t 63",
+    "YICES": "./tools/yices-2.6.2/bin/yices-smt2 --timeout=63"
 
 }
 
 EPSILON = 0.5          #probability with which to randomly search
 EPSILON_DECAY = 0.9
-TRAINING_SAMPLE = 12934812034
+TRAINING_SAMPLE = 250
 SPEEDUP_WEIGHT = 0.5
 SIMILARITY_WEIGHT = 0.5
 
-PROBLEM_DIR = "QF_UFBV/**/*.smt2*"
+PROBLEM_DIR = "datasets/qf_abv/*.smt2"
 
 PROBES = [
     'size',
@@ -105,7 +105,7 @@ def run_problem(solver, invocation, problem):
     result = Result(
         problem  = problem.split("/", 2)[-1],
         result   = output,
-        elapsed  = elapsed if output != 'error' else TIMEOUT
+        elapsed  = elapsed if output == 'unsat' or output == 'sat' else TIMEOUT
     )
     return result
 

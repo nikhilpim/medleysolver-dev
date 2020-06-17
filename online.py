@@ -16,7 +16,7 @@ from samplers import ThompsonSampling
 
 
 # arguments
-TIMEOUT     = 30.0
+TIMEOUT = 60.0
 RESULTS_DIR = "results"
 
 # data
@@ -31,20 +31,20 @@ TIMEOUT_RESULT = 'timeout (%.1f s)' % TIMEOUT
 ERROR_RESULT   = 'error'
 
 SOLVERS = OrderedDict({
-    "Z3"   : "z3 -T:33",
-    "CVC4" : "cvc4 --tlimit=33000",
-    "BOOLECTOR" : "./tools/boolector-3.2.1/build/bin/boolector -t 33",
-    "YICES": "./tools/yices-2.6.2/bin/yices-smt2 --timeout=33"
+    "Z3"   : "z3 -T:63",
+    "CVC4" : "cvc4 --tlimit=63000",
+    "BOOLECTOR" : "./tools/boolector-3.2.1/build/bin/boolector -t 63",
+    "YICES": "./tools/yices-2.6.2/bin/yices-smt2 --timeout=63"
 
 })
 
 EPSILON = 0.88          #probability with which to randomly search
 EPSILON_DECAY = 0.92
-TRAINING_SAMPLE = 182397123
+TRAINING_SAMPLE = 250
 SPEEDUP_WEIGHT = 0.8
 SIMILARITY_WEIGHT = 0.2
 
-PROBLEM_DIR = "sage2/*.smt2"
+PROBLEM_DIR = "datasets/qf_abv/*.smt2"
 
 PROBES = [
     'size',
@@ -112,7 +112,8 @@ def run_problem(solver, invocation, problem):
     result = Result(
         problem  = problem.split("/", 2)[-1],
         result   = output,
-        elapsed  = elapsed if output != 'error' else TIMEOUT
+        elapsed  = elapsed if output == 'unsat' or output == 'sat' else TIMEOUT
+
     )
     return result
 
@@ -178,8 +179,12 @@ def main(problem_dir):
     sampler = ThompsonSampling(len(SOLVERS), init_a=1, init_b=1)
 
     alternative_times = []
+    last_five = []
     for prob in problems:
         point = np.array(probe(prob))
+        last_five.append(point)
+        point = point / (np.array(last_five).max(axis=0)+ 1e-10)
+        if len(last_five) > 5: last_five.pop(0)
         # print(ctr, EPSILON * (EPSILON_DECAY ** ctr))
         start = datetime.datetime.now().timestamp()
         if solved and np.random.rand() >= EPSILON * (EPSILON_DECAY ** ctr):
