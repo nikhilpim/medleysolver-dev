@@ -1,4 +1,4 @@
-# QuickSMT
+# MedleySolver
 
 ## Learning for SMT Speedup
 
