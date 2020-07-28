@@ -1,4 +1,8 @@
 # MedleySolver
+## Notes for Reproduction
+To reproduce plot, install z3, Yices, Boolector, and CVC4, and put the corresponding commands in the SOLVERS dictionary in common.py. Put all input smt queries in a directory and put the location in common.py as well. Then, use medley.py to run MedleySolver. Medley outputs pickle files in byte format - "times" files contain the per-query solve time, and "all" files contain solver result, solvers used, and time elapsed per query.
+
+Additional work is in progress to make the tool easier to use.
 
 ## Learning for SMT Speedup
 
