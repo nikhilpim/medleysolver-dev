@@ -97,7 +97,7 @@ def add_strategy(problem, datapoint, solver, solved, all):
         if s == solver_list[-1]:
             res = run_problem(s, solver, problem, TIMEOUT-elapsed)
         else:
-            res = run_problem(s, solver, problem, 0.05)
+            res = run_problem(s, solver, problem, TIMERS[s].get_cutoff())
 
         elapsed += res.elapsed
         rewards.append((1 - (len(SOLVERS) * res.elapsed) / TIMEOUT) ** 4)
